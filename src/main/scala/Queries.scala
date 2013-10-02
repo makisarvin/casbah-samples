@@ -4,12 +4,17 @@ import com.mongodb.casbah.Imports._
 
 case class Trip(name: String, tags: List[String], country: String)
 
-
+/**
+ * Add the following indexes into the db.
+ * use tutorial
+ * db.trips.ensureIndex({ coordinates: "2d" });
+ * db.trips.ensureIndex({ coordinates: "2d", tags: 1 });
+ */
 object Queries extends App {
 
   val mongoClient = MongoClient()
   // get the DB
-  val mongoDB = mongoClient("test")
+  val mongoDB = mongoClient("tutorial")
   // get the collection inside the DB where you will store the data
   val mongoColl = mongoDB("trips")
 
@@ -59,9 +64,6 @@ object Queries extends App {
   for (x <- mongoColl.find(query_complex_1)) println(x)
 
   //4th query. Geolocation
-  val query_geo_1 = $and { ("country_loc" $near (50,50)) :: ("tags" $in ("sun", "eiffel")) }
-  println("complex_1. Should be both")
-  //for (x <- mongoColl.find(query_geo_1)) println(x)
 
   val params_geo = MongoDBObject( "country_loc" ->
     MongoDBObject("$near" ->
@@ -70,10 +72,20 @@ object Queries extends App {
           "coordinates" -> GeoCoords(50.12, 50.12)),
         "$maxDistance" -> 100)))
 
-  val query_geo_2 = ("country_loc" $nearSphere  (50, 50))
+  val query_geo_1 = params_geo ++ ("tags" $in ("sun", "eiffel"))
+  val query_geo_2 = params_geo ++ ("tags" -> "eiffel")
+
+
+  val query_geo_3 = ("country_loc" $near  (50, 50))
+
+  println("query_geo_1 should return both entries")
+  for (x <- mongoColl.find(query_geo_1)) println(x)
+
+  println("query_geo_2 should return Paris")
   for (x <- mongoColl.find(query_geo_2)) println(x)
-  println("----------TEST------------------")
-  for (x <- mongoColl.find(params_geo)) println(x)
+
+  println("query_geo_3 should return both entries")
+  for (x <- mongoColl.find(query_geo_3)) println(x)
 
   for( x <- mongoColl.find($and { params_geo :: ("tags" $in ("sun", "eiffel")) })) println(x)
 
@@ -88,7 +100,7 @@ object Queries extends App {
     builder += "name" -> trip.name
     builder += "tags" -> trip.tags
     builder += "country" -> trip.country
-    builder += "country_loc" -> location.result
+    builder += "country_loc" -> GeoCoords(50.12, 50.12)
 
     builder.result()
   }
