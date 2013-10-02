@@ -75,6 +75,7 @@ object Queries extends App {
   println("----------TEST------------------")
   for (x <- mongoColl.find(params_geo)) println(x)
 
+  for( x <- mongoColl.find($and { params_geo :: ("tags" $in ("sun", "eiffel")) })) println(x)
 
 
   def writer(trip: Trip): DBObject = {
